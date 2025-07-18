@@ -11,6 +11,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 
+with app.app_context():
+    db.create_all()
+
 # Data Models
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
