@@ -1,11 +1,17 @@
-from flask import render_template
-from flask import Flask, jsonify, request
+import os
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+
+# Database configuration for PostgreSQL/SQLite compatibility
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///database.db')
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -18,7 +24,7 @@ class Project(db.Model):
     field = db.Column(db.String(100))
     stage = db.Column(db.String(50))
     abstract = db.Column(db.Text)
-    priority = db.Column(db.String(10))  # Change to String: "High", "Medium", "Low"
+    priority = db.Column(db.String(10))  # "High", "Medium", "Low"
     deadline = db.Column(db.String(10))  # Format: "YYYY-MM-DD"
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -31,8 +37,17 @@ class Collaborator(db.Model):
 
 # Routes
 @app.route('/')
-def home():
-    return render_template('index.html')
+def index():
+    return jsonify({
+        'message': 'Research Dashboard API is running!',
+        'endpoints': {
+            'projects': '/api/projects',
+            'collaborators': '/api/projects/<id>/collaborators',
+            'send_email': '/api/send-email'
+        },
+        'frontend': 'Upload and open frontend.html in your browser',
+        'database': 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite'
+    })
 
 @app.route('/api/projects', methods=['GET'])
 def get_projects():
@@ -113,13 +128,12 @@ def delete_collaborator(collab_id):
     db.session.commit()
     return jsonify({'message': 'Collaborator deleted successfully'})
 
-# EMAIL ENDPOINT - NEWLY ADDED
+# EMAIL ENDPOINT
 @app.route('/api/send-email', methods=['POST'])
 def send_email():
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    import os
     
     try:
         data = request.json
@@ -144,6 +158,7 @@ Project: {data['project_name']}
 
 ---
 Sent from Research Dashboard
+University of Nebraska-Lincoln
         """
         
         msg.attach(MIMEText(body, 'plain'))
@@ -162,14 +177,23 @@ Sent from Research Dashboard
         print(f"Email error: {e}")  # For debugging
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# Run Server
-import os
+# Initialize database
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
+# Health check endpoint
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'database': 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite',
+        'timestamp': datetime.datetime.utcnow().isoformat()
+    })
+
+# Run Server
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-@app.route('/')
-def index():
-    return jsonify({'message': 'Welcome to the Research Dashboard API'})
+    app.run(host='0.0.0.0', port=port, debug=False)
