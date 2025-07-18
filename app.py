@@ -1,3 +1,4 @@
+from flask import render_template
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -29,6 +30,10 @@ class Collaborator(db.Model):
     role = db.Column(db.String(100))
 
 # Routes
+@app.route('/')
+def home():
+    return render_template('index.html')
+
 @app.route('/api/projects', methods=['GET'])
 def get_projects():
     projects = Project.query.all()
@@ -158,7 +163,13 @@ Sent from Research Dashboard
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # Run Server
+import os
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+@app.route('/')
+def index():
+    return jsonify({'message': 'Welcome to the Research Dashboard API'})

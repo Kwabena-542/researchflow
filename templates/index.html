@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Dashboard</title>
+  <style>
+    /* -------------- Global Styles -------------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; color: #333; line-height: 1.6;
+    }
+    header {
+      background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 30px 20px; text-align: center; position: sticky; top: 0; z-index: 100;
+    }
+    header h1 { color: white; font-size: 2.5rem; font-weight: 700; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    nav {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      padding: 20px; display: flex; justify-content: center; gap: 40px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1); border-bottom: 1px solid rgba(0,0,0,0.1);
+      position: sticky; top: 100px; z-index: 99;
+    }
+    nav a {
+      text-decoration: none; color: #4a5568; font-weight: 600; font-size: 1.1rem;
+      padding: 12px 24px; border-radius: 25px; transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    nav a::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+    nav a:hover { background: linear-gradient(45deg, #667eea, #764ba2); color: white; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+    nav a:hover::before { left: 100%; }
+
+    /* -------------- Section Styles -------------- */
+    .dashboard-section {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
+      margin: 30px; padding: 40px; border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255,255,255,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .dashboard-section:hover { transform: translateY(-5px); box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .dashboard-section h2 {
+      color: #2d3748; font-size: 2rem; margin-bottom: 25px; font-weight: 700; position: relative; padding-bottom: 15px;
+    }
+    .dashboard-section h2::after {
+      content: ''; position: absolute; bottom: 0; left: 0; width: 60px; height: 4px;
+      background: linear-gradient(45deg, #667eea, #764ba2); border-radius: 2px;
+    }
+    .dashboard-section h3 { color: #4a5568; font-size: 1.5rem; margin: 30px 0 20px 0; font-weight: 600; }
+    .dashboard-section p { margin-bottom: 15px; font-size: 1.1rem; color: #718096; }
+    .dashboard-section p strong { color: #2d3748; font-weight: 600; }
+
+    /* -------------- Priority Badges -------------- */
+    .priority-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600; margin-left: 8px;
+    }
+    .priority-high { background: linear-gradient(45deg, #f56565, #e53e3e); color: white; }
+    .priority-medium { background: linear-gradient(45deg, #ed8936, #dd6b20); color: white; }
+    .priority-low { background: linear-gradient(45deg, #48bb78, #38a169); color: white; }
+
+    /* -------------- Deadline Indicators -------------- */
+    .deadline-indicator {
+      display: inline-block; font-size: 0.9em; margin-left: 8px; padding: 2px 8px; border-radius: 8px;
+    }
+    .deadline-urgent { background: #fed7d7; color: #c53030; }
+    .deadline-soon { background: #feebc8; color: #c05621; }
+    .deadline-normal { background: #e6fffa; color: #2c7a7b; }
+
+    /* -------------- Buttons -------------- */
+    button.edit-btn, button.delete-btn, button.collab-btn, button.details-btn {
+      margin-left: 8px; cursor: pointer; padding: 8px 16px; border: none; border-radius: 20px;
+      font-weight: 600; font-size: 0.9rem; transition: all 0.3s ease; position: relative; overflow: hidden; color: white;
+    }
+    button.edit-btn { background: linear-gradient(45deg, #ed8936, #dd6b20); box-shadow: 0 4px 15px rgba(237,137,54,0.3); }
+    button.edit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(237,137,54,0.4); }
+    button.delete-btn { background: linear-gradient(45deg, #f56565, #e53e3e); box-shadow: 0 4px 15px rgba(245,101,101,0.3); }
+    button.delete-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245,101,101,0.4); }
+    button.collab-btn { background: linear-gradient(45deg, #4299e1, #3182ce); box-shadow: 0 4px 15px rgba(66,153,225,0.3); }
+    button.collab-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(66,153,225,0.4); }
+    button.details-btn { background: linear-gradient(45deg, #4299e1, #667eea); box-shadow: 0 4px 15px rgba(66,153,225,0.3); }
+    button.details-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(66,153,225,0.4); }
+
+    /* -------------- Project List -------------- */
+    #project-list { display: grid; gap: 20px; }
+    #project-list>div { background: rgba(255,255,255,0.8); padding: 25px; border-radius: 15px; backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.3); box-shadow: 0 5px 20px rgba(0,0,0,0.1); transition: all 0.3s ease; position: relative; overflow: hidden; }
+    #project-list>div::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:linear-gradient(45deg,#667eea,#764ba2); }
+    #project-list>div:hover { transform:translateX(10px); box-shadow:0 10px 30px rgba(0,0,0,0.15); }
+    #project-list strong { color:#2d3748; font-size:1.2rem; font-weight:700; }
+
+    /* -------------- Forms -------------- */
+    form.generic-form {
+      background: rgba(255, 255, 255, 0.5); padding: 30px; border-radius: 15px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); margin-bottom: 30px;
+    }
+    form.generic-form input, form.generic-form textarea, form.generic-form select, form.generic-form button {
+      display: block; width: 100%; max-width: 500px; margin: 15px 0; padding: 15px 20px; font-size: 1.1rem; border: 2px solid transparent; border-radius: 12px; transition: all 0.3s ease; font-family: inherit;
+    }
+    form.generic-form input, form.generic-form textarea, form.generic-form select { background: rgba(255,255,255,0.9); border: 2px solid rgba(102,126,234,0.2); backdrop-filter: blur(5px); }
+    form.generic-form input:focus, form.generic-form textarea:focus, form.generic-form select:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,0.1); transform: translateY(-2px); }
+    form.generic-form textarea { min-height: 120px; resize: vertical; }
+    form.generic-form button { background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; position: relative; overflow: hidden; }
+    form.generic-form button::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent); transition:left 0.5s; }
+    form.generic-form button:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(102,126,234,0.4); }
+    form.generic-form button:hover::before { left:100%; }
+
+    /* -------------- Responsive -------------- */
+    @media(max-width:768px){
+      .dashboard-section{margin:20px 15px; padding:25px;}
+      nav{flex-direction:column; gap:10px; padding:15px;}
+      nav a{text-align:center; font-size:1rem;}
+      header h1{font-size:2rem;}
+      form.generic-form input,form.generic-form textarea,form.generic-form select,form.generic-form button{max-width:100%;}
+    }
+
+    /* -------------- Footer Styles -------------- */
+    footer {
+      background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      margin-top: 50px; padding: 40px 20px; color: white;
+      text-align: center;
+    }
+    footer .footer-content {
+      max-width: 800px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+      align-items: start; text-align: left;
+    }
+    footer .footer-section h3 {
+      color: white; font-size: 1.3rem; margin-bottom: 15px;
+      font-weight: 700; border-bottom: 2px solid rgba(255,255,255,0.3);
+      padding-bottom: 8px; display: inline-block;
+    }
+    footer .footer-section p {
+      margin-bottom: 8px; font-size: 1rem; line-height: 1.5;
+      opacity: 0.9;
+    }
+    footer .footer-section strong {
+      color: #ffd700; font-weight: 600;
+    }
+    footer .footer-section a {
+      color: #87ceeb; text-decoration: none; transition: color 0.3s ease;
+    }
+    footer .footer-section a:hover {
+      color: #ffd700; text-decoration: underline;
+    }
+    @media(max-width:768px){
+      footer .footer-content {
+        grid-template-columns: 1fr; gap: 25px; text-align: center;
+      }
+    }
+
+    /* -------------- Smooth Scroll & Loading -------------- */
+    html{scroll-behavior:smooth;}
+    #project-list:empty::after{content:'Loading projects...'; display:block; text-align:center; padding:40px; color:#718096; font-style:italic; animation:fadeInOut 2s infinite;}
+    @keyframes fadeInOut{0%,100%{opacity:0.5;} 50%{opacity:1;}}
+  </style>
+</head>
+<body>
+  <header><h1>Research Flow </h1></header>
+  <nav>
+    <a href="#main">Main Dashboard</a>
+    <a href="#project-management">Project Management</a>
+    <a href="#collaborator-management">Collaborators</a>
+  </nav>
+
+  <!-- -------- Main Dashboard -------- -->
+  <section id="main" class="dashboard-section">
+    <h2>Main Dashboard</h2>
+    <div id="dashboard-stats-cards" style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:25px;"></div>
+    <div id="active-projects-visual" style="margin-top:2em;"></div>
+  </section>
+
+  <!-- -------- Project Management (Create) -------- -->
+  <section id="project-management" class="dashboard-section">
+    <h2>Create a New Project</h2>
+    <form id="project-form" class="generic-form">
+      <input type="text" id="projectName" placeholder="Project Name" required>
+      <select id="projectStage" required>
+        <option value="">Select Stage</option>
+        <option value="Idea Development">Idea Development</option>
+        <option value="IRB Approval Process">IRB Approval Process</option>
+        <option value="Data Collection">Data Collection</option>
+        <option value="Analysis">Analysis</option>
+        <option value="Manuscript Writing">Manuscript Writing</option>
+        <option value="Journal/Conference Submission">Journal/Conference Submission</option>
+        <option value="Revision and Resubmission">Revision and Resubmission</option>
+      </select>
+      <input type="text" id="projectField" placeholder="Enter field..." required>
+      <select id="projectPriority" required>
+        <option value="">Select Priority</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <input type="date" id="projectDeadline" required>
+      <textarea id="projectAbstract" placeholder="Abstract"></textarea>
+      <button type="submit">Create Project</button>
+    </form>
+
+    <h3>Current Projects</h3>
+    <div id="project-list"></div>
+
+    <!-- -------- Edit Project Modal -------- -->
+    <div id="editProjectModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center;">
+      <form id="edit-project-form" class="generic-form" style="max-width:500px; margin:auto; position:relative; max-height:90vh; overflow-y:auto;">
+        <h3>Edit Project</h3>
+        <input type="text" id="editProjectName" placeholder="Project Name" required>
+        <select id="editProjectStage" required>
+          <option value="">Select Stage</option>
+          <option value="Idea Development">Idea Development</option>
+          <option value="IRB Approval Process">IRB Approval Process</option>
+          <option value="Data Collection">Data Collection</option>
+          <option value="Analysis">Analysis</option>
+          <option value="Manuscript Writing">Manuscript Writing</option>
+          <option value="Journal/Conference Submission">Journal/Conference Submission</option>
+          <option value="Revision and Resubmission">Revision and Resubmission</option>
+        </select>
+        <input type="text" id="editProjectField" placeholder="Enter field..." required>
+        <select id="editProjectPriority" required>
+          <option value="">Select Priority</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <input type="date" id="editProjectDeadline" required>
+        <textarea id="editProjectAbstract" placeholder="Abstract"></textarea>
+        <input type="hidden" id="editProjectId">
+        <div style="display:flex; justify-content: flex-end; gap: 1em;">
+          <button type="button" id="cancelEditBtn" style="background:#718096;">Cancel</button>
+          <button type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- -------- Collaborator Management -------- -->
+  <section id="collaborator-management" class="dashboard-section" style="display:none;">
+    <h2>Collaborator Management</h2>
+    <h3 id="collab-project-title">Project Collaborators</h3>
+    <ul id="collaborator-list"></ul>
+    <form id="collaborator-form" class="generic-form" style="max-width:500px;">
+      <input type="text" id="collaboratorName" placeholder="Collaborator Name" required>
+      <input type="email" id="collaboratorEmail" placeholder="Email" required>
+      <select id="collaboratorRole" required>
+        <option value="">Select Role</option>
+        <option value="PI">PI</option>
+        <option value="CO-PI">CO-PI</option>
+        <option value="Author">Author</option>
+        <option value="CO-Author">CO-Author</option>
+        <option value="Other">Other</option>
+      </select>
+      <!-- Custom role text field (hidden by default) -->
+      <input type="text" id="collaboratorCustomRole" placeholder="Please specify role..." style="display:none;">
+      <input type="hidden" id="collaboratorProjectName">
+      <button type="submit">Add Collaborator</button>
+    </form>
+  </section>
+
+  <!-- -------- Email Modal -------- -->
+  <div id="emailModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center;">
+    <form id="email-form" class="generic-form" style="max-width:600px; margin:auto; position:relative; max-height:90vh; overflow-y:auto;">
+      <h3>Send Email to Collaborator</h3>
+      <div style="margin-bottom:15px; padding:10px; background:rgba(102,126,234,0.1); border-radius:8px;">
+        <strong>To:</strong> <span id="emailRecipientName"></span> (<span id="emailRecipientEmail"></span>)<br>
+        <strong>Project:</strong> <span id="emailProjectName"></span>
+      </div>
+      <input type="text" id="emailSubject" placeholder="Email Subject" required>
+      <textarea id="emailMessage" placeholder="Email Message" style="min-height:150px;" required></textarea>
+      <input type="hidden" id="emailRecipientEmailHidden">
+      <div style="display:flex; justify-content: flex-end; gap: 1em;">
+        <button type="button" id="cancelEmailBtn" style="background:#718096;">Cancel</button>
+        <button type="submit">Send Email</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- -------- Project Details Modal -------- -->
+  <div id="details-modal" style="display:none; position:fixed; z-index:10000; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+    <div id="details-content" style="background:#fff; max-width:430px; max-height:85vh; overflow-y:auto; padding:32px 28px 20px 28px; border-radius:16px; box-shadow:0 10px 36px #3336; position:relative;">
+      <button id="closeDetailsBtn" style="position:absolute;top:10px;right:16px;background:#eee;border:none;padding:2px 10px;border-radius:6px;cursor:pointer;">&times;</button>
+      <div id="details-body"></div>
+    </div>
+  </div>
+
+  <script>
+    console.log('Script starting...');
+
+    // Global variables
+    let currentProjectId = null;
+    let currentProjectName = '';
+
+    // Helper functions
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getPriorityBadge(priority) {
+      if (!priority) return '';
+      return `<span class="priority-badge priority-${priority.toLowerCase()}">${escapeHTML(priority)}</span>`;
+    }
+
+    function getDeadlineIndicator(deadline) {
+      if (!deadline) return '';
+      const today = new Date();
+      const deadlineDate = new Date(deadline);
+      const diffTime = deadlineDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      let className = 'deadline-normal';
+      let text = '';
+      
+      if (diffDays < 0) {
+        className = 'deadline-urgent';
+        text = `Overdue by ${Math.abs(diffDays)} days`;
+      } else if (diffDays <= 7) {
+        className = 'deadline-urgent';
+        text = `Due in ${diffDays} days`;
+      } else if (diffDays <= 30) {
+        className = 'deadline-soon';
+        text = `Due in ${diffDays} days`;
+      } else {
+        text = `Due ${deadlineDate.toLocaleDateString()}`;
+      }
+      
+      return `<span class="deadline-indicator ${className}">${text}</span>`;
+    }
+
+    // Stage progress mapping
+    const stageProgress = {
+      "Idea Development": { percent: 15, color: "crimson" },
+      "IRB Approval Process": { percent: 25, color: "orangered" },
+      "Data Collection": { percent: 50, color: "darkorange" },
+      "Analysis": { percent: 70, color: "gold" },
+      "Manuscript Writing": { percent: 85, color: "yellowgreen" },
+      "Journal/Conference Submission": { percent: 90, color: "limegreen" },
+      "Revision and Resubmission": { percent: 95, color: "mediumseagreen" }
+    };
+
+    function getStageProgress(stage) {
+      return stageProgress[stage] || { percent: 0, color: "#aaa" };
+    }
+
+    // Project CRUD functions
+    function fetchProjects() {
+      console.log('Fetching projects...');
+      fetch('http://localhost:5000/api/projects')
+        .then(r => r.json())
+        .then(data => {
+          console.log('Projects fetched:', data);
+          renderProjectList(data);
+          renderDashboardStats(data);
+          renderActiveProjectsVisual(data);
+        })
+        .catch(error => {
+          console.error('Error fetching projects:', error);
+        });
+    }
+
+    function renderProjectList(projects) {
+      const container = document.getElementById('project-list');
+      container.innerHTML = '';
+      
+      projects.forEach(project => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>${escapeHTML(project.name)}</strong> - ${escapeHTML(project.stage)} 
+          <span style="margin-left:10px; color:#667eea;">${project.field ? "Field: " + escapeHTML(project.field) : ""}</span>
+          ${getPriorityBadge(project.priority)}
+          ${getDeadlineIndicator(project.deadline)}
+          <br>
+          <button class="edit-btn" data-project-id="${project.id}">Edit</button>
+          <button class="delete-btn" data-project-id="${project.id}">Delete</button>
+          <button class="collab-btn" data-project-id="${project.id}" data-project-name="${escapeHTML(project.name)}">Collaborators</button>
+          <button class="details-btn" data-project-id="${project.id}">View Details</button>
+        `;
+        
+        // Add event listeners directly to buttons
+        const editBtn = div.querySelector('.edit-btn');
+        const deleteBtn = div.querySelector('.delete-btn');
+        const collabBtn = div.querySelector('.collab-btn');
+        const detailsBtn = div.querySelector('.details-btn');
+        
+        // Store project data on the edit button for easy access
+        editBtn.projectData = project;
+        editBtn.addEventListener('click', function() {
+          console.log('Edit button clicked for project:', this.projectData);
+          openEditModal(this.projectData);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+          deleteProject(project.id);
+        });
+        
+        collabBtn.addEventListener('click', function() {
+          manageCollaborators(project.id, project.name);
+        });
+        
+        detailsBtn.addEventListener('click', function() {
+          showProjectDetails(project.id);
+        });
+        
+        container.appendChild(div);
+      });
+    }
+
+    function openEditModal(project) {
+      console.log('Opening edit modal for project:', project);
+      
+      try {
+        // Check if all required elements exist
+        const elements = {
+          id: document.getElementById('editProjectId'),
+          name: document.getElementById('editProjectName'),
+          stage: document.getElementById('editProjectStage'),
+          field: document.getElementById('editProjectField'),
+          priority: document.getElementById('editProjectPriority'),
+          deadline: document.getElementById('editProjectDeadline'),
+          abstract: document.getElementById('editProjectAbstract'),
+          modal: document.getElementById('editProjectModal')
+        };
+        
+        // Check for missing elements
+        Object.entries(elements).forEach(([key, element]) => {
+          if (!element) {
+            console.error(`Missing element: ${key}`);
+          }
+        });
+        
+        // Fill form with project data
+        elements.id.value = project.id || '';
+        elements.name.value = project.name || '';
+        elements.stage.value = project.stage || '';
+        elements.field.value = project.field || '';
+        elements.priority.value = project.priority || '';
+        elements.deadline.value = project.deadline || '';
+        elements.abstract.value = project.abstract || '';
+        
+        // Show modal
+        elements.modal.style.display = 'flex';
+        console.log('Edit modal opened successfully');
+        
+      } catch (error) {
+        console.error('Error opening edit modal:', error);
+        alert('Error opening edit form. Please check the console for details.');
+      }
+    }
+
+    function closeEditModal() {
+      document.getElementById('editProjectModal').style.display = 'none';
+    }
+
+    function submitProject(e) {
+      e.preventDefault();
+      console.log('Submitting new project...');
+      
+      const projectData = {
+        name: document.getElementById('projectName').value,
+        stage: document.getElementById('projectStage').value,
+        field: document.getElementById('projectField').value,
+        priority: document.getElementById('projectPriority').value,
+        deadline: document.getElementById('projectDeadline').value,
+        abstract: document.getElementById('projectAbstract').value
+      };
+
+      fetch('http://localhost:5000/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData)
+      })
+      .then(r => r.json())
+      .then(data => {
+        alert(data.message);
+        fetchProjects();
+        document.getElementById('project-form').reset();
+      })
+      .catch(error => {
+        console.error('Error creating project:', error);
+        alert('Error creating project');
+      });
+    }
+
+    function submitEditProject(e) {
+      e.preventDefault();
+      console.log('Submitting project edit...');
+      
+      const id = document.getElementById('editProjectId').value;
+      const projectData = {
+        name: document.getElementById('editProjectName').value,
+        stage: document.getElementById('editProjectStage').value,
+        field: document.getElementById('editProjectField').value,
+        priority: document.getElementById('editProjectPriority').value,
+        deadline: document.getElementById('editProjectDeadline').value,
+        abstract: document.getElementById('editProjectAbstract').value
+      };
+
+      fetch(`http://localhost:5000/api/projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData)
+      })
+      .then(r => r.json())
+      .then(data => {
+        alert(data.message);
+        fetchProjects();
+        closeEditModal();
+      })
+      .catch(error => {
+        console.error('Error updating project:', error);
+        alert('Error updating project');
+      });
+    }
+
+    function deleteProject(id) {
+      if (!confirm('Delete this project?')) return;
+      
+      fetch(`http://localhost:5000/api/projects/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.message);
+          fetchProjects();
+        })
+        .catch(error => {
+          console.error('Error deleting project:', error);
+          alert('Error deleting project');
+        });
+    }
+
+    // Collaborator functions
+    function manageCollaborators(projectId, projectName) {
+      currentProjectId = projectId;
+      currentProjectName = projectName;
+      document.getElementById('collab-project-title').innerText = `Collaborators for ${projectName}`;
+      document.getElementById('collaborator-management').style.display = 'block';
+      document.getElementById('collaboratorProjectName').value = projectName;
+      fetchCollaborators(projectId);
+      document.getElementById('collaborator-management').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function fetchCollaborators(projectId) {
+      fetch(`http://localhost:5000/api/projects/${projectId}/collaborators`)
+        .then(r => r.json())
+        .then(list => {
+          const ul = document.getElementById('collaborator-list');
+          ul.innerHTML = '';
+          
+          if (list.length === 0) {
+            ul.innerHTML = '<li>No collaborators yet.</li>';
+            return;
+          }
+          
+          list.forEach(c => {
+            const li = document.createElement('li');
+            li.style.marginBottom = '10px';
+            li.style.padding = '10px';
+            li.style.background = 'rgba(255,255,255,0.5)';
+            li.style.borderRadius = '8px';
+            li.innerHTML = `
+              <span>${escapeHTML(c.name)} - <em>${escapeHTML(c.role)}</em></span>
+              ${c.email ? `<br><small>Email: ${escapeHTML(c.email)}</small>` : ''}
+            `;
+            
+            // Add action buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.marginTop = '8px';
+            
+            // Send Email button (only if email exists)
+            if (c.email) {
+              const emailBtn = document.createElement('button');
+              emailBtn.className = 'collab-btn';
+              emailBtn.style.marginLeft = '0px';
+              emailBtn.style.marginRight = '8px';
+              emailBtn.textContent = 'Send Email';
+              emailBtn.addEventListener('click', () => openEmailModal(c, currentProjectName));
+              buttonContainer.appendChild(emailBtn);
+            }
+            
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.style.marginLeft = '0px';
+            deleteBtn.textContent = 'Remove';
+            deleteBtn.addEventListener('click', () => deleteCollaborator(c.id));
+            buttonContainer.appendChild(deleteBtn);
+            
+            li.appendChild(buttonContainer);
+            ul.appendChild(li);
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching collaborators:', error);
+        });
+    }
+
+    function submitCollaborator(e) {
+      e.preventDefault();
+      console.log('Submitting collaborator...');
+      
+      if (currentProjectId === null) {
+        alert('No project selected');
+        return;
+      }
+      
+      const roleSelect = document.getElementById('collaboratorRole').value;
+      const customRole = document.getElementById('collaboratorCustomRole').value;
+      
+      // Determine final role value
+      let finalRole = roleSelect;
+      if (roleSelect === 'Other' && customRole.trim()) {
+        finalRole = customRole.trim();
+      } else if (roleSelect === 'Other' && !customRole.trim()) {
+        alert('Please specify the custom role');
+        return;
+      }
+      
+      const collaboratorData = {
+        name: document.getElementById('collaboratorName').value,
+        email: document.getElementById('collaboratorEmail').value,
+        role: finalRole,
+        project_name: document.getElementById('collaboratorProjectName').value
+      };
+
+      fetch(`http://localhost:5000/api/projects/${currentProjectId}/collaborators`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collaboratorData)
+      })
+      .then(r => r.json())
+      .then(data => {
+        alert(data.message);
+        fetchCollaborators(currentProjectId);
+        document.getElementById('collaborator-form').reset();
+        // Hide custom role field when form is reset
+        document.getElementById('collaboratorCustomRole').style.display = 'none';
+      })
+      .catch(error => {
+        console.error('Error adding collaborator:', error);
+        alert('Error adding collaborator');
+      });
+    }
+
+    function deleteCollaborator(collabId) {
+      if (!confirm('Remove collaborator?')) return;
+      
+      fetch(`http://localhost:5000/api/collaborators/${collabId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.message);
+          fetchCollaborators(currentProjectId);
+        })
+        .catch(error => {
+          console.error('Error deleting collaborator:', error);
+          alert('Error deleting collaborator');
+        });
+    }
+
+    // Email functions
+    function openEmailModal(collaborator, projectName) {
+      document.getElementById('emailRecipientName').textContent = collaborator.name;
+      document.getElementById('emailRecipientEmail').textContent = collaborator.email;
+      document.getElementById('emailProjectName').textContent = projectName;
+      document.getElementById('emailRecipientEmailHidden').value = collaborator.email;
+      
+      // Set default subject
+      document.getElementById('emailSubject').value = `Update on Project: ${projectName}`;
+      
+      // Clear message
+      document.getElementById('emailMessage').value = '';
+      
+      document.getElementById('emailModal').style.display = 'flex';
+    }
+
+    function closeEmailModal() {
+      document.getElementById('emailModal').style.display = 'none';
+    }
+
+    function sendEmail(e) {
+      e.preventDefault();
+      console.log('Sending email...');
+      
+      const emailData = {
+        to_email: document.getElementById('emailRecipientEmailHidden').value,
+        subject: document.getElementById('emailSubject').value,
+        message: document.getElementById('emailMessage').value,
+        project_name: document.getElementById('emailProjectName').textContent
+      };
+
+      fetch('http://localhost:5000/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailData)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('Email sent successfully!');
+          closeEmailModal();
+        } else {
+          alert('Error sending email: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error sending email:', error);
+        alert('Error sending email. Please try again.');
+      });
+    }
+
+    // Project details
+    function showProjectDetails(projectId) {
+      fetch(`http://localhost:5000/api/projects`)
+        .then(r => r.json())
+        .then(projects => {
+          const project = projects.find(p => p.id === projectId);
+          if (!project) return;
+
+          fetch(`http://localhost:5000/api/projects/${projectId}/collaborators`)
+            .then(r => r.json())
+            .then(collaborators => {
+              const html = `
+                <h3 style="margin-bottom:12px;font-size:1.3em;">${escapeHTML(project.name)}</h3>
+                <div><b>Stage:</b> ${escapeHTML(project.stage || "")}</div>
+                <div><b>Field:</b> ${escapeHTML(project.field || "")}</div>
+                <div><b>Priority:</b> ${getPriorityBadge(project.priority)}</div>
+                <div><b>Deadline:</b> ${getDeadlineIndicator(project.deadline)}</div>
+                <div style="margin-bottom:8px;"><b>Abstract:</b><br><span style="color:#444;">${escapeHTML(project.abstract || "")}</span></div>
+                <div><b>Collaborators:</b></div>
+                <ul style="margin:0 0 8px 0; padding-left:18px;">
+                  ${collaborators.length ? collaborators.map(c =>
+                    `<li><b>${escapeHTML(c.name)}</b> (${escapeHTML(c.role)})${c.email ? " - <a href='mailto:" + escapeHTML(c.email) + "'>" + escapeHTML(c.email) + "</a>" : ""}</li>`
+                  ).join('') : "<li><i>No collaborators.</i></li>"}
+                </ul>
+              `;
+              document.getElementById("details-body").innerHTML = html;
+              document.getElementById("details-modal").style.display = "flex";
+            });
+        })
+        .catch(error => {
+          console.error('Error showing project details:', error);
+        });
+    }
+
+    function closeDetailsModal() {
+      document.getElementById("details-modal").style.display = "none";
+    }
+
+    // Dashboard stats and visuals
+    function renderDashboardStats(projects) {
+      const nearCompletionStages = ["Manuscript Writing", "Journal/Conference Submission", "Revision and Resubmission"];
+      const activeStages = [
+        "Idea Development", "IRB Approval Process", "Data Collection", "Analysis",
+        "Manuscript Writing", "Journal/Conference Submission", "Revision and Resubmission"
+      ];
+
+      const total = projects.length;
+      const active = projects.filter(p => activeStages.includes(p.stage)).length;
+      const nearCompletion = projects.filter(p => nearCompletionStages.includes(p.stage)).length;
+
+      const colors = [
+        "linear-gradient(45deg,#667eea,#764ba2)",
+        "linear-gradient(45deg,#48bb78,#38a169)",
+        "linear-gradient(45deg,#ecc94b,#f6e05e)"
+      ];
+
+      document.getElementById('dashboard-stats-cards').innerHTML = `
+        <div style="flex:1 0 160px; background:${colors[0]};color:#fff; border-radius:18px; box-shadow:0 2px 18px #0001; padding:26px 16px; min-width:160px; text-align:center;">
+          <div style="font-size:2.2em;font-weight:700;">${total}</div>
+          <div style="font-size:1em;opacity:0.92;">Total Projects</div>
+        </div>
+        <div style="flex:1 0 160px; background:${colors[1]};color:#fff; border-radius:18px; box-shadow:0 2px 18px #0001; padding:26px 16px; min-width:160px; text-align:center;">
+          <div style="font-size:2.2em;font-weight:700;">${active}</div>
+          <div style="font-size:1em;opacity:0.92;">Active Projects</div>
+        </div>
+        <div style="flex:1 0 160px; background:${colors[2]};color:#333; border-radius:18px; box-shadow:0 2px 18px #0001; padding:26px 16px; min-width:160px; text-align:center;">
+          <div style="font-size:2.2em;font-weight:700;">${nearCompletion}</div>
+          <div style="font-size:1em;opacity:0.92;">Near Completion</div>
+        </div>
+      `;
+    }
+
+    function renderActiveProjectsVisual(projects) {
+      const container = document.getElementById('active-projects-visual');
+      if (!container) return;
+      
+      if (!projects.length) {
+        container.innerHTML = "<p style='color:#888'>No active projects to display.</p>";
+        return;
+      }
+      
+      // Sort projects by priority: High -> Medium -> Low -> projects without priority
+      const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+      const sortedProjects = [...projects].sort((a, b) => {
+        const aPriority = priorityOrder[a.priority] || 999;
+        const bPriority = priorityOrder[b.priority] || 999;
+        return aPriority - bPriority;
+      });
+      
+      container.innerHTML = `
+        <h3 style="margin-bottom:20px;">Active Projects Overview</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:18px;">
+          ${sortedProjects.map(project => {
+            const prog = getStageProgress(project.stage);
+            const priorityBadge = getPriorityBadge(project.priority);
+            const deadlineInfo = getDeadlineIndicator(project.deadline);
+            return `
+            <div style="
+              background:#fff; border-radius:15px; box-shadow:0 3px 15px rgba(100,100,150,0.07);
+              padding:20px 24px; min-width:200px; max-width:280px; flex:1 0 210px; display:flex; flex-direction:column; align-items:flex-start;
+              border-left:8px solid ${prog.color};
+            ">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${prog.color};box-shadow:0 1px 5px #ccc;"></span>
+                <span style="font-size:1.05em;font-weight:600;">${escapeHTML(project.name)}</span>
+              </div>
+              <span style="font-size:0.98em;color:#666;margin-bottom:4px;">Field: <b>${escapeHTML(project.field || '')}</b></span>
+              <span style="font-size:0.98em;margin-bottom:4px;">
+                Stage: 
+                <b style="color:${prog.color};">${escapeHTML(project.stage || 'Unknown')}</b>
+              </span>
+              <div style="margin-bottom:4px;">${priorityBadge}</div>
+              <div style="margin-bottom:8px;">${deadlineInfo}</div>
+              <div style="width:100%; margin:10px 0 0 0;">
+                <div style="background:#eee;height:12px;border-radius:8px;width:100%;overflow:hidden;">
+                  <div style="width:${prog.percent}%;height:12px;background:${prog.color};transition:width 0.5s;"></div>
+                </div>
+              </div>
+            </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, initializing...');
+      
+      // Fetch initial data
+      fetchProjects();
+      
+      // Set up form event listeners
+      const projectForm = document.getElementById('project-form');
+      if (projectForm) {
+        projectForm.addEventListener('submit', submitProject);
+      }
+      
+      const editProjectForm = document.getElementById('edit-project-form');
+      if (editProjectForm) {
+        editProjectForm.addEventListener('submit', submitEditProject);
+      }
+      
+      const collaboratorForm = document.getElementById('collaborator-form');
+      if (collaboratorForm) {
+        collaboratorForm.addEventListener('submit', submitCollaborator);
+      }
+      
+      // Email form
+      const emailForm = document.getElementById('email-form');
+      if (emailForm) {
+        emailForm.addEventListener('submit', sendEmail);
+      }
+      
+      // Set up modal close buttons
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', closeEditModal);
+      }
+      
+      const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+      if (closeDetailsBtn) {
+        closeDetailsBtn.addEventListener('click', closeDetailsModal);
+      }
+      
+      const cancelEmailBtn = document.getElementById('cancelEmailBtn');
+      if (cancelEmailBtn) {
+        cancelEmailBtn.addEventListener('click', closeEmailModal);
+      }
+      
+      // Handle role dropdown change to show/hide custom role field
+      const roleSelect = document.getElementById('collaboratorRole');
+      const customRoleField = document.getElementById('collaboratorCustomRole');
+      
+      if (roleSelect && customRoleField) {
+        roleSelect.addEventListener('change', function() {
+          if (this.value === 'Other') {
+            customRoleField.style.display = 'block';
+            customRoleField.required = true;
+          } else {
+            customRoleField.style.display = 'none';
+            customRoleField.required = false;
+            customRoleField.value = '';
+          }
+        });
+      }
+      
+      console.log('Initialization complete');
+    });
+
+    console.log('Script loaded successfully');
+  </script>
+
+  <!-- -------- Footer -------- -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Guy Trainin</h3>
+        <p><strong>Position:</strong> Professor</p>
+        <p><strong>Department:</strong> Teaching, Learning & Teacher Ed</p>
+      </div>
+      <div class="footer-section">
+        <h3>Contact Information</h3>
+        <p><strong>Address:</strong><br>
+        CPEH 176 Lincoln NE 68588-0233</p>
+        <p><strong>Phone:</strong><br>
+        402-472-2231 | On-campus 2-2231</p>
+        <p><strong>Email:</strong><br>
+        <a href="mailto:gtrainin2@unl.edu">gtrainin2@unl.edu</a></p>
+      </div>
+    </div>
+    
+    <!-- Copyright and Legal Notice -->
+    <div style="border-top: 1px solid rgba(255,255,255,0.2); margin-top: 30px; padding-top: 20px; text-align: center; font-size: 0.9em; opacity: 0.8; line-height: 1.6;">
+      <p>© 2025 Guy Trainin and Williams Kwabena Boakye. All rights reserved.</p>
+      <p>Developed in affiliation with the University of Nebraska–Lincoln.</p>
+      <p>This application is intended solely for local use within authorized jurisdictions.</p>
+      <p>Unauthorized reproduction, distribution, or modification of any part of this app is strictly prohibited and may result in legal action.</p>
+    </div>
+  </footer>
+</body>
+</html>
