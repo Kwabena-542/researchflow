@@ -53,7 +53,8 @@ def init_db():
         db.create_all()
         
         # Test database connection
-        result = db.session.execute('SELECT 1').fetchone()
+        from sqlalchemy import text
+        result = db.session.execute(text('SELECT 1')).fetchone()
         print(f"Database connection test: {result}")
         
         # Check if tables exist
@@ -302,7 +303,8 @@ University of Nebraska-Lincoln
 def health_check():
     try:
         # Test database connection
-        db.session.execute('SELECT 1')
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         db_status = 'healthy'
         db_type = 'PostgreSQL' if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'
     except Exception as e:
