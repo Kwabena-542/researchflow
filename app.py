@@ -50,24 +50,54 @@ def init_db():
     """Initialize database tables"""
     try:
         print("Creating database tables...")
-        db.create_all()
         
-        # Test database connection
+        # Check database connection first
         from sqlalchemy import text
         result = db.session.execute(text('SELECT 1')).fetchone()
         print(f"Database connection test: {result}")
         
-        # Check if tables exist
+        # Drop and recreate all tables to ensure clean state
+        print("Dropping existing tables...")
+        db.drop_all()
+        
+        print("Creating new tables...")
+        db.create_all()
+        
+        # Verify tables were created
         from sqlalchemy import inspect
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
-        print(f"Available tables: {tables}")
+        print(f"Available tables after creation: {tables}")
         
-        print("Database tables created successfully")
+        # Verify specific tables exist
+        if 'project' in tables and 'collaborator' in tables:
+            print("✅ All required tables created successfully!")
+        else:
+            print("❌ Some tables missing!")
+            print(f"Expected: ['project', 'collaborator'], Got: {tables}")
+        
+        # Test table access
+        try:
+            projects_count = db.session.execute(text('SELECT COUNT(*) FROM project')).scalar()
+            print(f"Project table accessible, count: {projects_count}")
+        except Exception as e:
+            print(f"Error accessing project table: {e}")
+            
+        print("Database initialization completed")
+        
     except Exception as e:
         print(f"Error creating database tables: {e}")
         import traceback
         traceback.print_exc()
+        
+        # Try alternative approach
+        try:
+            print("Attempting alternative table creation...")
+            with db.engine.connect() as conn:
+                db.metadata.create_all(conn)
+            print("Alternative table creation completed")
+        except Exception as e2:
+            print(f"Alternative approach also failed: {e2}")
 
 # Initialize database tables
 with app.app_context():
@@ -113,6 +143,56 @@ def api_info():
         'database': db_type,
         'status': 'healthy'
     })
+
+@app.route('/debug/tables')
+def debug_tables():
+    """Debug endpoint to check table status"""
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        # Get table details
+        table_info = {}
+        for table_name in tables:
+            try:
+                columns = inspector.get_columns(table_name)
+                table_info[table_name] = [col['name'] for col in columns]
+            except Exception as e:
+                table_info[table_name] = f"Error: {e}"
+        
+        # Test queries
+        test_results = {}
+        try:
+            project_count = db.session.execute(text('SELECT COUNT(*) FROM project')).scalar()
+            test_results['project_count'] = project_count
+        except Exception as e:
+            test_results['project_error'] = str(e)
+            
+        try:
+            collab_count = db.session.execute(text('SELECT COUNT(*) FROM collaborator')).scalar()
+            test_results['collaborator_count'] = collab_count
+        except Exception as e:
+            test_results['collaborator_error'] = str(e)
+        
+        return jsonify({
+            'database_url': app.config['SQLALCHEMY_DATABASE_URI'][:50] + "...",
+            'available_tables': tables,
+            'table_details': table_info,
+            'test_results': test_results,
+            'models_defined': ['Project', 'Collaborator']
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/debug/create-tables')
+def debug_create_tables():
+    """Force table creation"""
+    try:
+        init_db()
+        return jsonify({'message': 'Table creation attempted, check logs'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/dashboard')
 def dashboard_redirect():
