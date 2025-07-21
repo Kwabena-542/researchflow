@@ -45,6 +45,33 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db = SQLAlchemy(app)
 CORS(app)
 
+# Force database table creation when app starts
+def init_db():
+    """Initialize database tables"""
+    try:
+        print("Creating database tables...")
+        db.create_all()
+        
+        # Test database connection
+        result = db.session.execute('SELECT 1').fetchone()
+        print(f"Database connection test: {result}")
+        
+        # Check if tables exist
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        print(f"Available tables: {tables}")
+        
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+        import traceback
+        traceback.print_exc()
+
+# Initialize database tables
+with app.app_context():
+    init_db()
+
 # Data Models
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -302,25 +329,7 @@ def internal_error(error):
 
 # Run Server
 if __name__ == '__main__':
-    try:
-        with app.app_context():
-            print("Creating database tables...")
-            db.create_all()
-            
-            # Test database connection
-            result = db.session.execute('SELECT 1').fetchone()
-            print(f"Database connection test: {result}")
-            
-            # Check if tables exist
-            inspector = db.inspect(db.engine)
-            tables = inspector.get_table_names()
-            print(f"Available tables: {tables}")
-            
-            print("Database tables created successfully")
-    except Exception as e:
-        print(f"Error creating database tables: {e}")
-    
     port = int(os.environ.get('PORT', 5000))
     print(f"Starting server on port {port}")
     print(f"Dashboard available at: http://localhost:{port}")
-    app.run(host='0.0.0.0', port=port, debug=False)  # Production settings for Render
+    app.run(host='0.0.0.0', port=port, debug=True)  # Enable debug for local development
