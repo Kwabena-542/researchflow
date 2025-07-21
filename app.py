@@ -113,21 +113,33 @@ def get_projects():
 def create_project():
     try:
         data = request.json
+        print(f"Received project data: {data}")  # Debug logging
+        
+        # Validate required fields
+        if not data or not data.get('name'):
+            return jsonify({'error': 'Project name is required'}), 400
+        
         new_project = Project(
-            name=data['name'],
-            stage=data.get('stage', ''),
-            abstract=data.get('abstract', ''),
-            field=data.get('field', ''),
-            priority=data.get('priority', ''),
-            deadline=data.get('deadline', '')
+            name=data['name'].strip(),
+            stage=data.get('stage', '').strip(),
+            abstract=data.get('abstract', '').strip(),
+            field=data.get('field', '').strip(),
+            priority=data.get('priority', '').strip(),
+            deadline=data.get('deadline', '').strip()
         )
+        
+        print(f"Creating project: {new_project.name}")  # Debug logging
         db.session.add(new_project)
         db.session.commit()
+        print("Project created successfully")  # Debug logging
+        
         return jsonify({'message': 'Project created successfully'}), 201
     except Exception as e:
         print(f"Error creating project: {e}")
+        print(f"Error type: {type(e)}")
+        print(f"Request data: {request.get_json()}")  # More debug info
         db.session.rollback()
-        return jsonify({'error': 'Failed to create project'}), 500
+        return jsonify({'error': f'Failed to create project: {str(e)}'}), 500
 
 @app.route('/api/projects/<int:id>', methods=['PUT'])
 def update_project(id):
@@ -294,6 +306,16 @@ if __name__ == '__main__':
         with app.app_context():
             print("Creating database tables...")
             db.create_all()
+            
+            # Test database connection
+            result = db.session.execute('SELECT 1').fetchone()
+            print(f"Database connection test: {result}")
+            
+            # Check if tables exist
+            inspector = db.inspect(db.engine)
+            tables = inspector.get_table_names()
+            print(f"Available tables: {tables}")
+            
             print("Database tables created successfully")
     except Exception as e:
         print(f"Error creating database tables: {e}")
