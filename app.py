@@ -17,13 +17,16 @@ def get_database_url():
     
     print(f"Original DATABASE_URL: {DATABASE_URL}")
     
-    # Handle Render's PostgreSQL URL format
+    # Handle Render's PostgreSQL URL format with pg8000 driver
     if DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-        print(f"Updated DATABASE_URL: {DATABASE_URL}")
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+pg8000://', 1)
+    elif DATABASE_URL.startswith('postgresql://'):
+        DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+pg8000://', 1)
+    
+    print(f"Updated DATABASE_URL: {DATABASE_URL}")
     
     # Additional validation for common URL issues
-    if not DATABASE_URL.startswith(('postgresql://', 'sqlite://')):
+    if not DATABASE_URL.startswith(('postgresql+pg8000://', 'sqlite://')):
         print(f"WARNING: Unrecognized database URL format: {DATABASE_URL}")
         print("Falling back to SQLite")
         return 'sqlite:///database.db'
