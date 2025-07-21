@@ -1,9 +1,8 @@
 import os
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import datetime
-import re
 
 app = Flask(__name__)
 
@@ -64,18 +63,30 @@ class Collaborator(db.Model):
 # Routes
 @app.route('/')
 def index():
+    """Serve the main dashboard interface"""
+    return render_template('frontend.html')
+
+@app.route('/api-info')
+def api_info():
+    """API information endpoint"""
     db_type = 'PostgreSQL' if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'
     return jsonify({
         'message': 'Research Dashboard API is running!',
         'endpoints': {
+            'dashboard': '/',
             'projects': '/api/projects',
             'collaborators': '/api/projects/<id>/collaborators',
             'send_email': '/api/send-email'
         },
-        'frontend': 'Upload and open frontend.html in your browser',
+        'frontend': 'Dashboard is served at the root URL: /',
         'database': db_type,
         'status': 'healthy'
     })
+
+@app.route('/dashboard')
+def dashboard_redirect():
+    """Redirect /dashboard to root for backward compatibility"""
+    return redirect('/')
 
 @app.route('/api/projects', methods=['GET'])
 def get_projects():
@@ -286,4 +297,5 @@ if __name__ == '__main__':
     
     port = int(os.environ.get('PORT', 5000))
     print(f"Starting server on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)  # Set debug=False for production
+    print(f"Dashboard available at: http://localhost:{port}")
+    app.run(host='0.0.0.0', port=port, debug=False)  # Production settings for Render
